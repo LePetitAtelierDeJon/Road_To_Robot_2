@@ -1,83 +1,58 @@
-use std::{thread, time};
+// use std::{thread, time};
 
 use sfml::graphics::*;
-use sfml::system::*;
+// use sfml::system::*;
 use sfml::window::*;
 
-fn draw_frame(window: &RenderWindow) {
-    let mut vec = Vec::new();
-
-    let nb_points = 30;
-    let angle_max = 180;
-    let angle_fraction = angle_max / nb_points;
-
-    vec.push(Vertex::with_pos(Vector2f::new(400.0, 600.0)));
-
-    for i in 0..(nb_points + 1) {
-        let f = -(i * angle_fraction) as f32;
-
-        let x = 400.0 + 300.0 * f.to_radians().cos();
-        let y = 600.0 + 300.0 * f.to_radians().sin();
-        let p = Vector2f::new(x, y);
-        vec.push(Vertex::with_pos(p));
-    }
-    vec.push(Vertex::with_pos_color(
-        Vector2f::new(400.0, 600.0),
-        Color::rgb(250, 250, 250),
-    ));
-
-    window.draw_primitives(&vec[..], PrimitiveType::LINE_STRIP, &RenderStates::DEFAULT);
-}
-
-fn draw_line(window: &RenderWindow, angle: i16) {
-    let mut vec = Vec::new();
-
-    vec.push(Vertex::with_pos_color(Vector2f::new(400.0, 600.0),
-        Color::rgb(0, 250, 100)));
-    let f = -(angle as f32);
-
-    let x = 400.0 + 300.0 * f.to_radians().cos();
-    let y = 600.0 + 300.0 * f.to_radians().sin();
-    let p = Vector2f::new(x, y);
-    vec.push(Vertex::with_pos_color(p,
-        Color::rgb(0, 250, 100)));
-
-    window.draw_primitives(&vec[..], PrimitiveType::LINE_STRIP, &RenderStates::DEFAULT);
-}
+mod radar_file;
+use radar_file::Radar;
 
 fn main() {
     let mut settings = ContextSettings::default().clone();
     settings.set_antialiasing_level(8);
 
-    let mut window = RenderWindow::new((800, 800), "Sonar", Style::CLOSE, &settings);
+    let mut window = RenderWindow::new((800, 800), "Radar", Style::CLOSE, &settings);
 
-    let mut angle: i16 = 0;
-    let mut orientation: i16 = 1;
+    let mut radar = Radar::default();
+
+    // let mut angle: i16 = 0;
+    // let mut orientation: i16 = 1;
 
     while window.is_open() {
         while let Some(event) = window.poll_event() {
             if event == Event::Closed {
                 window.close();
             }
-        }
+        }        
 
-        
         window.clear(Color::rgb(30, 30, 30));
 
-        draw_frame(&window);
-        draw_line(&window, angle);
+        radar.set_current_radar_orientation(45, 50.0);
 
-        if angle >= 180 {
-            orientation = -1;
-        } else if angle <= 0 {
-            orientation = 1;
-        }
+        // radar.draw(&window);
+        // radar.draw_radar_direction_line(&window, angle);
+        // radar.draw_echo(&window, obstacle_point);
 
-        angle += orientation;
+        // if angle >= 180 {
+        //     orientation = -1;
+        // } else if angle <= 0 {
+        //     orientation = 1;
+        // }
 
+        // angle += orientation;
+
+        // window.display();
+
+        radar.set_current_radar_orientation(1, 40.0);
+        radar.set_current_radar_orientation(125, 90.0);
+        radar.set_current_radar_orientation(145, 95.0);
+        radar.set_current_radar_orientation(179, 1.0);
+        radar.set_current_radar_orientation(0, 100.0);
+
+        radar.draw(&window);
         window.display();
 
-        let sleep_duration = time::Duration::from_millis(10);
-        thread::sleep(sleep_duration);
+        // let sleep_duration = time::Duration::from_millis(10);
+        // thread::sleep(sleep_duration);
     }
 }
