@@ -47,6 +47,7 @@ impl Radar {
             self.position.x,
             self.position.y + self.border_thickness as f32,
         );
+
         vec.push(Vertex::with_pos_color(new_pos, self.frame_color));
         for i in 0..(self.frame_nb_point + 1) as i32 {
             let f = -(i * angle_fraction) as f32;
@@ -87,7 +88,7 @@ impl Radar {
         );
     }
     pub fn draw_radar_direction_line(&self, window: &RenderWindow) {
-        let mut line = RectangleShape::with_size(Vector2f::new(            
+        let mut line = RectangleShape::with_size(Vector2f::new(
             self.radius as f32,
             self.border_thickness as f32,
         ));
