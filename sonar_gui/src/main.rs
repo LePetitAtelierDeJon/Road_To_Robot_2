@@ -1,8 +1,13 @@
+use std::net::TcpListener;
+use std::thread::spawn;
 use std::{thread, time};
+use tungstenite::accept;
 
 use sfml::graphics::*;
-use sfml::window::*;
 use sfml::system::*;
+use sfml::window::*;
+
+use std::sync::mpsc;
 
 mod radar_file;
 use radar_file::Radar;
@@ -15,15 +20,34 @@ fn main() {
 
     let mut radar = Radar::default();
 
-    let mut angle: i16 = 0;
-    let mut orientation: i16 = 1;
+    let font = Font::from_file("./ZabalDEMO-Bold.otf").unwrap();
 
-    let font = Font::from_file("./PIXEAB__.TTF").unwrap();
-
-    let mut title = Text::new("SONAR", &font, 60);
+    let mut title = Text::new("SONAR", &font, 90);
     let bounds = title.local_bounds();
-    title.set_origin(Vector2f::new(bounds.width/2.0, bounds.height/2.0));
+    title.set_origin(Vector2f::new(bounds.width / 2.0, bounds.height / 2.0));
     title.set_position(Vector2f::new(400.0, 100.0));
+
+    let mut title2 = Text::new("by LePetitAtelierDeJon", &font, 30);
+    let bounds = title2.local_bounds();
+    title2.set_origin(Vector2f::new(bounds.width / 2.0, bounds.height / 2.0));
+    title2.set_position(Vector2f::new(400.0, 180.0));
+
+    let (tx, rx) = mpsc::channel();
+    let (thread_end_tx, thread_end_rx) = mpsc::channel();
+    let handle = thread::spawn(move || {
+        let server = TcpListener::bind("localhost:3012").unwrap();
+        for stream in server.incoming() {
+            let tx_ter = tx.clone();
+            spawn(move || {
+                let mut websocket = accept(stream.unwrap()).unwrap();
+                loop {
+                    let msg = websocket.read_message().unwrap();
+                    let content = msg.to_text().unwrap();
+                    tx_ter.send(content.to_owned()).unwrap();
+                }
+            });
+        }
+    });
 
     while window.is_open() {
         while let Some(event) = window.poll_event() {
@@ -34,21 +58,26 @@ fn main() {
 
         window.clear(Color::rgb(30, 30, 30));
 
-        if angle >= 180 {
-            orientation = -1;
-        } else if angle <= 0 {
-            orientation = 1;
-        }
+        match rx.try_recv() {
+            Ok(resp) => {
+                let mut splited_message = resp.split(";");
+                let str_angle = splited_message.next().unwrap();
+                let angle: i16 = str_angle.parse().unwrap();
+                let str_echo = splited_message.next().unwrap();
+                let echo: f32 = str_echo.parse().unwrap();
 
-        angle += orientation;
-       
-        radar.set_current_radar_orientation(angle, -1.0);        
+                radar.set_current_radar_orientation(angle, echo);
+            }
+            Err(_) => {}
+        }
 
         radar.draw(&window);
         window.draw_text(&title, &RenderStates::DEFAULT);
+        window.draw_text(&title2, &RenderStates::DEFAULT);
         window.display();
 
         let sleep_duration = time::Duration::from_millis(10);
         thread::sleep(sleep_duration);
     }
+    thread_end_tx.send(());
 }
